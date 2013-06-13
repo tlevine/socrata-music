@@ -3,10 +3,55 @@ import os
 import string
 import csv
 import json
+from unidecode import unidecode
 
 DATA = 'data'
 OUTPUT_FILE = open('socrata.csv', 'w')
-OUTPUT_FIELDS = ['portal', 'id']
+OUTPUT_FIELDS = [
+    # Identity
+    u'portal',
+    u'id',
+    u'name',
+    u'description',
+
+    # Dates
+    u'createdAt',
+    u'publicationDate',
+    u'viewLastModified',
+    u'rowsUpdatedAt',
+
+    # Structure
+    u'displayType',
+    u'viewType',
+    u'columns',
+
+    # Usage
+    u'viewCount',
+    u'numberOfComments',
+    u'totalTimesRated',
+    u'downloadCount',
+    u'averageRating',
+
+    # Provenance
+    u'rowsUpdatedBy',
+    u'attribution',
+    u'tableAuthor.roleName',
+    u'owner.displayName',
+    u'owner.screenName',
+    u'owner.roleName',
+    u'tableAuthor.screenName',
+
+    # Location
+    u'northWest.long',
+    u'northWest.lat',
+    u'southEast.long',
+    u'southEast.lat',
+
+    # Other
+    u'category',
+    u'state',
+    u'tags',
+]
 
 def main():
     'IO ()'
@@ -18,10 +63,15 @@ def main():
     c = csv.DictWriter(OUTPUT_FILE, OUTPUT_FIELDS)
 
     for portal in portals()[:3]:
-        view_dir = os.path.join(DATA, portal, 'views')
+        view_dir = os.path.join(DATA, portal, u'views')
         for view_id in os.listdir(view_dir):
             row = read_view(os.path.join(view_dir, view_id))
-            row['portal'] = portal
+            row[u'portal'] = portal
+            for k,v in row.items():
+                if isinstance(v, basestring):
+                    row[k] = unidecode(v)
+                elif type(v) in {dict,list}:
+                    row[k] = json.dumps(v)
             c.writerow(row)
 
     OUTPUT_FILE.close()
@@ -32,7 +82,6 @@ def portals():
 
 def read_view(view_path):
     handle = open(view_path, 'r')
-    print view_path
     view = _flatten(json.load(handle))
 
     # Limit fields
