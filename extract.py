@@ -4,6 +4,7 @@ import string
 import csv
 import json
 from unidecode import unidecode
+import collections
 
 DATA = 'data'
 OUTPUT_FILE = open('socrata.csv', 'w')
@@ -23,7 +24,6 @@ OUTPUT_FIELDS = [
     # Structure
     u'displayType',
     u'viewType',
-    u'columns',
 
     # Usage
     u'viewCount',
@@ -47,10 +47,16 @@ OUTPUT_FIELDS = [
     u'southEast.long',
     u'southEast.lat',
 
-    # Other
+    # Other features from Socrata
     u'category',
     u'state',
     u'tags',
+
+    # My new features
+    u'ncol',
+    u'nrow',
+    u'sum.column.description.length',
+    u'datatypes',
 ]
 
 def main():
@@ -67,6 +73,23 @@ def main():
         for view_id in os.listdir(view_dir):
             row = read_view(os.path.join(view_dir, view_id))
             row[u'portal'] = portal
+
+            if 'columns' not in row:
+                row[u'columns'] = []
+
+            # Schema-related features
+            row[u'ncol'] = len(row[u'columns'])
+            if len(row[u'columns']) > 0:
+                row[u'nrow'] = row[u'columns'][0][u'not_null'] +row[u'columns'][0][u'null']
+            else:
+                row[u'nrow'] = 0
+
+            row[u'sum.column.description.length'] = sum([len(c[u'description']) for c in row[u'columns']])
+            row[u'datatypes'] = dict(collections.Counter([c[u'dataTypeName'] for c in row[u'columns']]))
+
+            del(row[u'columns'])
+
+            # Stringify and deal with encoding
             for k,v in row.items():
                 if isinstance(v, basestring):
                     row[k] = unidecode(v)
