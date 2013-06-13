@@ -67,27 +67,13 @@ def main():
         exit(1)
 
     c = csv.DictWriter(OUTPUT_FILE, OUTPUT_FIELDS)
+    c.writeheader()
 
     for portal in portals()[:3]:
         view_dir = os.path.join(DATA, portal, u'views')
         for view_id in os.listdir(view_dir):
             row = read_view(os.path.join(view_dir, view_id))
             row[u'portal'] = portal
-
-            if 'columns' not in row:
-                row[u'columns'] = []
-
-            # Schema-related features
-            row[u'ncol'] = len(row[u'columns'])
-            if len(row[u'columns']) > 0:
-                row[u'nrow'] = row[u'columns'][0][u'not_null'] +row[u'columns'][0][u'null']
-            else:
-                row[u'nrow'] = 0
-
-            row[u'sum.column.description.length'] = sum([len(c[u'description']) for c in row[u'columns']])
-            row[u'datatypes'] = dict(collections.Counter([c[u'dataTypeName'] for c in row[u'columns']]))
-
-            del(row[u'columns'])
 
             # Stringify and deal with encoding
             for k,v in row.items():
@@ -105,7 +91,25 @@ def portals():
 
 def read_view(view_path):
     handle = open(view_path, 'r')
-    view = _flatten(json.load(handle))
+    nested_view = json.load(handle)
+
+    # Schema-related features
+    nested_view[u'ncol'] = len(nested_view[u'columns'])
+    if len(nested_view[u'columns']) > 0:
+        if u'cachedContents' in nested_view[u'columns'][0].keys():
+            cached_contents = nested_view[u'columns'][0]['cachedContents']
+            nested_view[u'nrow'] = cached_contents[u'non_null'] +cached_contents[u'null']
+        else:
+            nested_view[u'nrow'] = None
+    else:
+        nested_view[u'nrow'] = 0
+
+    nested_view[u'sum.column.description.length'] = sum([len(c.get(u'description', u'')) for c in nested_view[u'columns']])
+    nested_view[u'datatypes'] = dict(collections.Counter([c[u'dataTypeName'] for c in nested_view[u'columns']]))
+
+    # Flatten
+    del(nested_view[u'columns'])
+    view = _flatten(nested_view)
 
     # Limit fields
     for key in view.keys():
