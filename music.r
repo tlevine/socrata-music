@@ -21,3 +21,4 @@ socrata <- (function() {
 p.1 <- ggplot(socrata) + aes(x = portal) + geom_bar() + coord_flip()
 p.2 <- ggplot(socrata) + aes(x = createdAt.day, group = portal, fill = portal) + geom_bar()
 
+subset(socrata, nrow > 100000)
