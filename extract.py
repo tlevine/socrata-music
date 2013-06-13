@@ -69,7 +69,7 @@ def main():
     c = csv.DictWriter(OUTPUT_FILE, OUTPUT_FIELDS)
     c.writeheader()
 
-    for portal in portals()[:3]:
+    for portal in portals():
         view_dir = os.path.join(DATA, portal, u'views')
         for view_id in os.listdir(view_dir):
             row = read_view(os.path.join(view_dir, view_id))
@@ -91,7 +91,11 @@ def portals():
 
 def read_view(view_path):
     handle = open(view_path, 'r')
-    nested_view = json.load(handle)
+    try:
+        nested_view = json.load(handle)
+    except:
+        os.remove(view_path)
+        raise ValueError('I removed %s because it was invalid.' % view_path)
 
     # Schema-related features
     nested_view[u'ncol'] = len(nested_view[u'columns'])
