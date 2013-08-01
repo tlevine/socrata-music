@@ -72,7 +72,10 @@ def main():
     for portal in portals():
         view_dir = os.path.join(DATA, portal, u'views')
         for view_id in os.listdir(view_dir):
-            row = read_view(os.path.join(view_dir, view_id))
+            try:
+                row = read_view(os.path.join(view_dir, view_id))
+            except ValueError:
+                pass
             row[u'portal'] = portal
 
             # Stringify and deal with encoding
